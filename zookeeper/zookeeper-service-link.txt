@@ -1,0 +1,4 @@
+https://kubernetes.io/ko/docs/tutorials/stateful-application/zookeeper/
+
+command
+kubectl apply -f https://k8s.io/examples/application/zookeeper/zookeeper.yaml
