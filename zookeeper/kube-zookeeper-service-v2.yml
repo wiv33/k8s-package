@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-hs
+  labels:
+    app: zk
+spec:
+  ports:
+    - port: 2888
+      name: server
+    - port: 3888
+      name: leader-election
+  clusterIP: None # headless service
+  selector:
+    app: zk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-cs
+  labels:
+    app: zk
+spec:
+  ports:
+    - port: 2181
+      name: client
+  selector:
+    app: zk
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: zk-pdb
+spec:
+  selector:
+    matchLabels:
+      app: zk
+  # 최대 한개의 Pod 만 비정상 상태를 허용하도록 한다.
+  maxUnavailable: 1
+---
+apiVersion: apps/v1
+# 상태를 유지해야 하는 RDBMS, NoSQL 등의 애플리케이션 등에 사용한다
+kind: StatefulSet
+metadata:
+  name: zk # pod-<index> 이름을 가진 pod 생성
+spec:
+  selector:
+    matchLabels:
+      app: zk
+  serviceName: zk-hs
+  replicas: 3
+  updateStrategy:
+    # 자동으로 예전 pod 를 삭제하고 새로운 포드 생성, OnDelete 수동으로 포드를 삭제하면 새로운 pod 를 생성
+    type: RollingUpdate
+  # 0 1 2 순서로 pod 생성 2 1 0 순서로 삭제, Parallel 순서없이 병렬로 생성 및 삭제
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      labels:
+        app: zk
+    spec:
+      affinity:
+        # podAffinity 와 정반대로 동작. 매칭되는 라벨을 가진 pod 를 다른 topologyKey 노드에 할당하도록 스케쥴링
+        podAntiAffinity:
+          # 반드시 해당 node 에 pod 를 배포. preferredDuringSchedulingIgnoredDuringExecution 가급적이면 그러나 안되면 다든 node 에 배포
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                      - zk
+              # kubernetes.io/hostname 노드의 host 이름으로 구분. 한 노드에 2 개 이상의 pod 를 할당하지 않는다.
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: kubernetes-zookeeper
+          imagePullPolicy: Always
+          image: k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "0.5"
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 2888
+              name: server
+            - containerPort: 3888
+              name: leader-election
+          command:
+            - sh
+            - -c
+            - "start-zookeeper \
+          --servers=3 \
+          --data_dir=/var/lib/zookeeper/data \
+          --data_log_dir=/var/lib/zookeeper/data/log \
+          --conf_dir=/opt/zookeeper/conf \
+          --client_port=2181 \
+          --election_port=3888 \
+          --server_port=2888 \
+          --tick_time=2000 \
+          --init_limit=10 \
+          --sync_limit=5 \
+          --heap=512M \
+          --max_client_cnxns=60 \
+          --snap_retain_count=3 \
+          --purge_interval=12 \
+          --max_session_timeout=40000 \
+          --min_session_timeout=4000 \
+          --log_level=INFO"
+          # 실패하면 iptable 에서 제외되고 서비스가 요청을 해당 pod 에게 전송하지 않는다
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "zookeeper-ready 2181"
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          # 실패하면 새로운 pod 를 생성해서 교체한다
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "zookeeper-ready 2181"
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: data
+              # 컨테이너 내부의 파일시스템을 Persistent Volume 에 마운트
+              mountPath: /var/lib/zookeeper
+      securityContext:
+        # 컨테이너 내부에서 사용할 UID, GID. 프로세스 생성 및 파일 생성시에 사용
+        runAsUser: 1000
+        fsGroup: 1000
+  # 동적 프로비저닝. 각각의 pod 마다 PV, PVC 를 생성한다.
+  volumeClaimTemplates:
+    - metadata:
+        name: data # {name}-{StatefulSet name} 이름으로 PVC 를 생성한다. 그리고 PV(Volume) 을 생성한다.
+      spec:
+        # StorageClass 이름
+#        storageClassName: "gluster-heketi"
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
