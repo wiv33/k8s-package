@@ -1,0 +1,1 @@
+kubectl create configmap prometheus-kubernetes --from-file=./prometheus-kubernetes.yaml
