@@ -209,3 +209,6 @@ eyJhbGciOiJSUzI1NiIsImtpZCI6IndUdXE3OFlRNlVXYTh2eUcxTm1RWThiM2ZUNlVEby1EbzZYTmVz
 ➜  dashboard git:(master) k get svc kubernetes-dashboard -n kube-system
 NAME                   TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)         AGE
 kubernetes-dashboard   LoadBalancer   10.102.132.91   192.168.56.240   443:31781/TCP   12m
+
+
+k -n kube-system describe secret $(k -n kube-system get secret | grep admin-user | awk '{print $1}')
