@@ -1,0 +1,210 @@
+➜  dashboard git:(master) k apply -f metallb.yaml
+namespace/metallb-system created
+serviceaccount/controller created
+serviceaccount/speaker created
+clusterrole.rbac.authorization.k8s.io/metallb-system:controller created
+clusterrole.rbac.authorization.k8s.io/metallb-system:speaker created
+role.rbac.authorization.k8s.io/config-watcher created
+clusterrolebinding.rbac.authorization.k8s.io/metallb-system:controller created
+clusterrolebinding.rbac.authorization.k8s.io/metallb-system:speaker created
+rolebinding.rbac.authorization.k8s.io/config-watcher created
+daemonset.apps/speaker created
+deployment.apps/controller created
+
+#
+
+➜  dashboard git:(master) k apply -f layer2-config.yml
+configmap/config created
+
+#
+
+➜  dashboard git:(master) k logs -l component=speaker -n metallb-system
+{"caller":"main.go:159","event":"startUpdate","msg":"start of service update","service":"default/zk-svc","ts":"2020-06-17T14:03:39.5237751Z"}
+{"caller":"main.go:163","event":"endUpdate","msg":"end of service update","service":"default/zk-svc","ts":"2020-06-17T14:03:39.5238029Z"}
+{"caller":"main.go:159","event":"startUpdate","msg":"start of service update","service":"default/zoo1","ts":"2020-06-17T14:03:39.5238319Z"}
+{"caller":"main.go:163","event":"endUpdate","msg":"end of service update","service":"default/zoo1","ts":"2020-06-17T14:03:39.5238553Z"}
+{"caller":"main.go:159","event":"startUpdate","msg":"start of service update","service":"docker/compose-api","ts":"2020-06-17T14:03:39.5238759Z"}
+{"caller":"main.go:163","event":"endUpdate","msg":"end of service update","service":"docker/compose-api","ts":"2020-06-17T14:03:39.5238967Z"}
+{"caller":"main.go:159","event":"startUpdate","msg":"start of service update","service":"kube-system/kube-dns","ts":"2020-06-17T14:03:39.5239123Z"}
+{"caller":"main.go:163","event":"endUpdate","msg":"end of service update","service":"kube-system/kube-dns","ts":"2020-06-17T14:03:39.5239844Z"}
+{"caller":"main.go:159","event":"startUpdate","msg":"start of service update","service":"kube-system/tiller-deploy","ts":"2020-06-17T14:03:39.5240632Z"}
+{"caller":"main.go:163","event":"endUpdate","msg":"end of service update","service":"kube-system/tiller-deploy","ts":"2020-06-17T14:03:39.5240869Z"}
+
+#
+
+➜  dashboard git:(master) mkdir certs; cd certs
+
+#
+
+➜  certs git:(master) openssl req -new -newkey rsa:2048 -nodes -out dashboard.csr -keyout dashboard.key -subj "/C=KR/ST=/L=/O=/CN=dashboard.pass.key"
+Generating a RSA private key
+...................................................................+++++
+...............+++++
+writing new private key to 'dashboard.key'
+-----
+req: No value provided for Subject Attribute ST, skipped
+req: No value provided for Subject Attribute L, skipped
+req: No value provided for Subject Attribute O, skipped
+
+#
+
+➜  certs git:(master) ✗ ls
+dashboard.csr  dashboard.key
+
+#
+
+➜  certs git:(master) ✗ ls
+dashboard.csr  dashboard.key
+
+#
+
+➜  certs git:(master) ✗ openssl req -new -key dashboard.key -out dashboard.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.                                                         -----
+Country Name (2 letter code) [AU]:KR
+State or Province Name (full name) [Some-State]:Seoul
+Locality Name (eg, city) []:Seoul
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:JI
+Organizational Unit Name (eg, section) []:
+Common Name (e.g. server FQDN or YOUR name) []:dashboard.k8s.local
+Email Address []:
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:psmaker
+An optional company name []:psmaker
+
+#
+
+➜  certs git:(master) ✗ openssl x509 -req -sha256 -days 365 -in dashboard.csr -signkey dashboard.key -out dashboard.crt
+Signature ok
+subject=C = KR, ST = Seoul, L = Seoul, O = JI, CN = dashboard.k8s.local
+Getting Private key
+
+#
+
+➜  certs git:(master) ✗ ls
+dashboard.crt  dashboard.csr  dashboard.key
+
+#
+
+➜  certs git:(master) ✗ cd ..
+➜  dashboard git:(master) ✗ kubectl create secret generic kubernetes-dashboard-certs --from-file=./certs -n kube-system
+secret/kubernetes-dashboard-certs created
+
+#
+
+➜  dashboard git:(master) ✗ wget https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+--2020-06-17 23:38:42-- https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 151.101.196.133
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|151.101.196.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 4577 (4.5K) [text/plain]
+Saving to: ‘kubernetes-dashboard.yaml’
+kubernetes-dashboard.yaml 100%[=====================================>]   4.47K  --.-KB/s    in 0.001s
+2020-06-17 23:38:43 (8.01 MB/s) - ‘kubernetes-dashboard.yaml’ saved [4577/4577]
+
+#
+
+➜  dashboard git:(master) ✗ vim kubernetes-dashboard.yaml
+
+- 이미지 추가
+
+# ------------------- Dashboard Service ------------------- #
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+      k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  type: LoadBalancer # ps - 추가
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    k8s-app: kubernetes-dashboard
+
+#
+
+➜  dashboard git:(master) ✗ k apply -f kubernetes-dashboard.yaml
+Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
+secret/kubernetes-dashboard-certs configured
+serviceaccount/kubernetes-dashboard created
+role.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+deployment.apps/kubernetes-dashboard created
+service/kubernetes-dashboard created
+
+
+#
+
+➜  dashboard git:(master) ✗ k get svc --all-namespaces
+NAMESPACE     NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP      PORT(S)                      AGE
+default       kubernetes             ClusterIP      10.96.0.1        <none>           443/TCP                      11d
+docker        compose-api            ClusterIP      10.111.93.16     <none>           443/TCP                      11d
+kube-system   kube-dns               ClusterIP      10.96.0.10       <none>           53/UDP,53/TCP,9153/TCP       11d
+***kube-system   kubernetes-dashboard   LoadBalancer   10.102.132.91    192.168.56.240   443:31781/TCP                87s***
+kube-system   tiller-deploy          ClusterIP      10.106.21.50     <none>           44134/TCP                    2d23h
+
+
+#
+
+➜  dashboard git:(master) ✗ vim dashboard-admin.yaml
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: admin-user
+    namespace: kube-system
+
+
+#
+
+➜  dashboard git:(master) k apply -f dashboard-admin.yaml
+Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
+serviceaccount/admin-user configured
+Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
+clusterrolebinding.rbac.authorization.k8s.io/admin-user configured
+
+
+#
+
+➜  dashboard git:(master) kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
+Name:         admin-user-token-2x925
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name: admin-user
+kubernetes.io/service-account.uid: 2cdf5443-74c8-4e7c-a9dc-bcd437d48640
+Type:  kubernetes.io/service-account-token
+Data
+====
+ca.crt:     1025 bytes
+namespace:  11 bytes
+token:
+eyJhbGciOiJSUzI1NiIsImtpZCI6IndUdXE3OFlRNlVXYTh2eUcxTm1RWThiM2ZUNlVEby1EbzZYTmVzU3VKTUUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXRva2VuLTJ4OTI1Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluLXVzZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyY2RmNTQ0My03NGM4LTRlN2MtYTlkYy1iY2Q0MzdkNDg2NDAiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06YWRtaW4tdXNlciJ9.T2NpaoSd9AoUfgNxv8_dEDniGh4jo4yMPhiix1HY_dYxjwhXZmSKHRkVOB1KVbEBBxTLDJG05JqDTdYN-VQs8xsTCNfI-E2oY2M15T47weP-fY3Xs3a1lw3sFld-Rxd4L_pCphzAPdJTBGilYkPSzDN2pIH-8KnLHy6dSvt9JBn63_lGUYjbJPnxpqb97nXbwIT6UCfE82MzgUYWDdwl4_GQdfyn-4yOHjdYNQHxCz266ewgRzKNCQ_4TjJN8Jm8cnW2Rm_7yMpXEUPVQ2Qgxh7adRdSpGf5We6dMzO-SjLDOUM0cA2_8NqH6HOgkh59I3O4dPKxkliTWIrUWnCGYg
+
+
+#
+
+➜  dashboard git:(master) k get svc kubernetes-dashboard -n kube-system
+NAME                   TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)         AGE
+kubernetes-dashboard   LoadBalancer   10.102.132.91   192.168.56.240   443:31781/TCP   12m
