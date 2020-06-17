@@ -37,6 +37,7 @@ configmap/config created
 #
 
 ➜  certs git:(master) openssl req -new -newkey rsa:2048 -nodes -out dashboard.csr -keyout dashboard.key -subj "/C=KR/ST=/L=/O=/CN=dashboard.pass.key"
+# openssl req -nodes -newkey rsa:2048 -keyout dashboard.key -out dashboard.csr
 Generating a RSA private key
 ...................................................................+++++
 ...............+++++
@@ -74,8 +75,8 @@ Common Name (e.g. server FQDN or YOUR name) []:dashboard.k8s.local
 Email Address []:
 Please enter the following 'extra' attributes
 to be sent with your certificate request
-A challenge password []:psmaker
-An optional company name []:psmaker
+A challenge password []:
+An optional company name []:
 
 #
 
