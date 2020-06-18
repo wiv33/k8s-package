@@ -36,21 +36,23 @@ configmap/config created
 
 #
 
-➜  certs git:(master) openssl req -new -newkey rsa:2048 -nodes -out dashboard.csr -keyout dashboard.key -subj "/C=KR/ST=/L=/O=/CN=dashboard.pass.key"
-# openssl req -nodes -newkey rsa:2048 -keyout dashboard.key -out dashboard.csr
-Generating a RSA private key
-...................................................................+++++
-...............+++++
-writing new private key to 'dashboard.key'
------
-req: No value provided for Subject Attribute ST, skipped
-req: No value provided for Subject Attribute L, skipped
-req: No value provided for Subject Attribute O, skipped
+➜  certs git:(master) openssl genrsa -des3 -out dashboard.pass.key 2048
+Generating RSA private key, 2048 bit long modulus
+........................+++
+.....................................................................+++
+e is 65537 (0x10001)
+Enter pass phrase for dashboard.pass.key: pass
+writing RSA key
 
 #
 
-➜  certs git:(master) ✗ ls
-dashboard.csr  dashboard.key
+➜  rm dashboard.pass.key
+
+#
+
+➜  openssl rsa -passin pass:x -in dashboard.pass.key -out dashboard.key
+Enter pass phrase for dashboard.pass.key: pass
+writing RSA key
 
 #
 
@@ -67,9 +69,9 @@ There are quite a few fields but you can leave some blank
 For some fields there will be a default value,
 If you enter '.', the field will be left blank.                                                         -----
 Country Name (2 letter code) [AU]:KR
-State or Province Name (full name) [Some-State]:Seoul
+State or Province Name (full name) [Some-State]:
 Locality Name (eg, city) []:Seoul
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:JI
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:PS
 Organizational Unit Name (eg, section) []:
 Common Name (e.g. server FQDN or YOUR name) []:dashboard.k8s.local
 Email Address []:
@@ -82,7 +84,7 @@ An optional company name []:
 
 ➜  certs git:(master) ✗ openssl x509 -req -sha256 -days 365 -in dashboard.csr -signkey dashboard.key -out dashboard.crt
 Signature ok
-subject=C = KR, ST = Seoul, L = Seoul, O = JI, CN = dashboard.k8s.local
+subject=C = KR, ST = Some-State, L = Seoul, O = PS, CN = dashboard.k8s.local
 Getting Private key
 
 #
