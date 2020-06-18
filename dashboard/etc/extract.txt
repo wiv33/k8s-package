@@ -1,4 +1,5 @@
 k apply -f metallb.yaml
+k delete -f metallb.yaml
 
 k apply -f layer2-config.yml
 
@@ -7,10 +8,12 @@ k logs -l component=speaker -n metallb-system
 k create secret generic kubernetes-dashboard-certs --from-file=./certs -n kube-system
 
 k apply -f kubernetes-dashboard.yaml
+k delete -f kubernetes-dashboard.yaml
 
 k get svc --all-namespaces
 
 k apply -f dashboard-admin.yaml
+k delete -f dashboard-admin.yaml
 
 k -n kube-system describe secret $(k -n kube-system get secret | grep admin-user | awk '{print $1}')
 
