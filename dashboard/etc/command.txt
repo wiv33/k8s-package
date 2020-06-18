@@ -189,7 +189,7 @@ clusterrolebinding.rbac.authorization.k8s.io/admin-user configured
 
 #
 
-➜  dashboard git:(master) kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
+➜  dashboard git:(master) k -n kube-system describe secret $(k -n kube-system get secret | grep admin-user | awk '{print $1}')
 Name:         admin-user-token-2x925
 Namespace:    kube-system
 Labels:       <none>
