@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
-  namespace: nginx
+  name: ps-nginx
+  namespace: ps-nginx
   labels:
-    app: nginx
+    app: ps-nginx
 spec:
   containers:
-    - name: nginx
-      image: nginx:1.14.2
+    - name: ps-nginx
+      image: psawesome/ps-nginx
       ports:
         - containerPort: 80
