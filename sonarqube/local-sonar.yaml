@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-sonar-deployment
+  labels:
+    app: local-sonar
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: local-sonar
+      labels:
+        app: local-sonar
+    spec:
+      containers:
+        - name: sonar
+          image: sonarqube
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+              name: local-sonar-svc
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: local-sonar
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: local-sonar-service
+spec:
+  selector:
+    app: local-sonar
+  ports:
+    - port: 9000
+      targetPort: local-sonar-svc
+      protocol: TCP
+  type: NodePort
+
+---
+
+#apiVersion: v1
+#kind: Endpoints
+#metadata:
+#  name: local-sonar-service
+#subsets:
+#  - addresses:
+#      - ip: 192.0.2.42
+#    ports:
+#      - port: 9000
+

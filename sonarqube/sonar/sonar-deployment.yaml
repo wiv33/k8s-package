@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sonarqube
+  name: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      containers:
+        - name: sonarqube
+          image: sonarqube:latest
+          volumeMounts:
+            - mountPath: "/opt/sonarqube/data/"
+              name: sonar-data
+            - mountPath: "/opt/sonarqube/extensions/"
+              name: sonar-extensions
+          env:
+            - name: "SONARQUBE_JDBC_USERNAME"
+              value: "ps"
+            - name: "SONARUQBE_JDBC_URL"
+              value: jdbc:postgresql://sonar-postgres:5432/sonar
+            - name: "SONARQUBE_JDBC_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: secret-password
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+      volumes:
+        - name: sonar-data
+          persistentVolumeClaim:
+            claimName: sonar-data
+        - name: sonar-extensions
+          persistentVolumeClaim:
+            claimName: sonar-extensions
