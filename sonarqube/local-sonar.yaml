@@ -19,7 +19,6 @@ spec:
           ports:
             - containerPort: 9000
               protocol: TCP
-              name: local-sonar-svc
       restartPolicy: Always
   selector:
     matchLabels:
@@ -35,8 +34,8 @@ spec:
   selector:
     app: local-sonar
   ports:
-    - port: 9000
-      targetPort: local-sonar-svc
+    - port: 9200
+      targetPort: 9000
       protocol: TCP
   type: NodePort
 
