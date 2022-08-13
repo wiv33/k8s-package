@@ -46,10 +46,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: spark-zepplin-service
+  name: spark-zeppelin-service
 spec:
   selector:
-    app: spark-zepplin
+    app: spark-zeppelin
   ports:
     - name: zeppelin-web
       port: 8080
