@@ -18,7 +18,9 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4040
+              name: zeppelin-port
             - containerPort: 8080
+              name: zeppelin-web
           env:
             - name: ZEPPELIN_NOTEBOOK_DIR
               value: /notebook
@@ -43,18 +45,17 @@ spec:
 
 ---
 
+# > minikube service spark-zeppelin-service --url
+
 apiVersion: v1
 kind: Service
 metadata:
   name: spark-zeppelin-service
 spec:
+  type: LoadBalancer
   selector:
     app: spark-zeppelin
   ports:
-    - name: zeppelin-web
+    - name: zeppelin-web-service
       port: 8080
-      targetPort: 8080
-    - name: zeppelin-default-web
-      port: 4040
-      targetPort: 4040
-  type: NodePort
+      targetPort: zeppelin-web
