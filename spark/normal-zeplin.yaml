@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-zeppelin-deployment
+  labels:
+    app: spark-zeppelin
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: spark-zeppelin
+      labels:
+        app: spark-zeppelin
+    spec:
+      containers:
+        - name: spark-zeppelin
+          image: apache/zeppelin:0.8.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4040
+            - containerPort: 8080
+          env:
+            - name: ZEPPELIN_NOTEBOOK_DIR
+              value: /notebook
+            - name: ZEPPELIN_LOG_DIR
+              value: /logs
+          command:
+            - /zeppelin/bin/zeppelin.sh
+          volumeMounts:
+            - mountPath: $PWD/logs
+              name: spark-logs
+          securityContext:
+            privileged: true
+
+      volumes:
+        - name: spark-logs
+          emptyDir: {}
+
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: spark-zeppelin
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-zepplin-service
+spec:
+  selector:
+    app: spark-zepplin
+  ports:
+    - name: zeppelin-web
+      port: 8080
+      targetPort: 8080
+    - name: zeppelin-default-web
+      port: 4040
+      targetPort: 4040
+  type: NodePort
