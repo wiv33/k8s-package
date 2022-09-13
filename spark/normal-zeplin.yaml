@@ -29,14 +29,26 @@ spec:
           command:
             - /zeppelin/bin/zeppelin.sh
           volumeMounts:
-            - mountPath: $PWD/logs
-              name: spark-logs
+            - mountPath: /logs
+              name: hostpath-logs
+              readOnly: false
+              mountPropagation: HostToContainer
+            - mountPath: /notebook
+              name: hostpath-notebook
+              readOnly: false
+              mountPropagation: HostToContainer
           securityContext:
             privileged: true
 
       volumes:
-        - name: spark-logs
-          emptyDir: {}
+        - name: hostpath-logs
+          hostPath:
+            path: /Users/nhn/logs
+            type: DirectoryOrCreate
+        - name: hostpath-notebook
+          hostPath:
+            path: /Users/nhn/logs
+            type: DirectoryOrCreate
 
       restartPolicy: Always
   selector:
@@ -59,3 +71,38 @@ spec:
     - name: zeppelin-web-service
       port: 8080
       targetPort: zeppelin-web
+
+#---
+#
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: spark-zeppelin-pv
+#spec:
+#  capacity:
+#    storage: 1Gi
+#  volumeMode: Filesystem
+#  accessModes:
+#    - ReadWriteMany
+#  storageClassName: zeppelin
+#  persistentVolumeReclaimPolicy: Retain
+#  hostPath:
+#    path: /Users/nhn/logs
+#    type: Directory
+#
+#
+#---
+#
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: spark-zeppelin-pvc
+#spec:
+#  accessModes:
+#    - ReadWriteMany
+#  volumeMode: Filesystem
+#  resources:
+#    requests:
+#      storage: 1Gi
+#  storageClassName: zeppelin
+#
