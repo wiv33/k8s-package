@@ -1,8 +1,6 @@
 #!/bin/zsh
+helm repo add ps-xyz https://charts.bitnami.com/bitnami
 
-kubectl create ns kafka
-helm install --name ps-xyz bitnami/kafka --namespace kafka
+helm install kafka bitnami/kafka --create-namespace --namespace kafka
 
-time 10
-
-kubectl get pod -n kafka
+sleep 3
