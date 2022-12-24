@@ -50,8 +50,8 @@ spec:
           - backend:
               service:
                 name: prometheus-service
-                #port:
-                #  number:
+                port:
+                  number: 9090
             pathType: Prefix
             path: /
 
