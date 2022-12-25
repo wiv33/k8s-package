@@ -1,0 +1,21 @@
+persistence:
+  enabled: true
+  existingClaim: kafka-data-pvc
+
+zookeeper:
+  persistence:
+    existingClaim: kafka-zoo-pvc
+
+kafka:
+  enabled: true
+  externalAccess:
+    enabled: true
+    service:
+      type: NodePort
+      domain: kafka.apps.psawesome.dev
+    autoDiscovery:
+      enabled: true
+    serviceAccount:
+      create: true
+    rbac:
+      create: true
